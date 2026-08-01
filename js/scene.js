@@ -338,9 +338,19 @@ const Scene = (() => {
     }
   }
 
-  /* Würfel-Endrotation, damit die gewünschte Zahl oben liegt */
+  /* Würfel-Endrotation, damit die gewürfelte Zahl auch wirklich oben liegt.
+     Materialreihenfolge der BoxGeometry ist [+x, −x, +y, −y, +z, −z],
+     bestückt mit den Augenzahlen [1, 6, 2, 5, 3, 4] — gegenüberliegende
+     Seiten ergeben also wie beim echten Würfel zusammen 7.
+     Die Drehung muss die Fläche mit der Zahl nach +y bringen:
+       1 liegt auf +x  → Drehung um z um +90°
+       6 liegt auf −x  → Drehung um z um −90°
+       2 liegt auf +y  → keine Drehung
+       5 liegt auf −y  → Drehung um x um 180°
+       3 liegt auf +z  → Drehung um x um −90°
+       4 liegt auf −z  → Drehung um x um +90°                              */
   const FACE_ROT = {
-    1: [0, 0, -Math.PI / 2], 6: [0, 0, Math.PI / 2], 2: [0, 0, 0],
+    1: [0, 0, Math.PI / 2], 6: [0, 0, -Math.PI / 2], 2: [0, 0, 0],
     5: [Math.PI, 0, 0], 3: [-Math.PI / 2, 0, 0], 4: [Math.PI / 2, 0, 0],
   };
 
