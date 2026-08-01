@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BOOM &amp; BUST — Das Wirtschafts-Brettspiel</title>
+<style>
+:root{
+  --bg:#0c121c; --panel:rgba(20,29,43,.92); --panel2:#182333;
+  --line:#2f4260; --line2:#3d5478; --ink:#e9eef5; --dim:#94a6c0;
+  --gold:#ffd166; --good:#7ee081; --bad:#ff6b6b; --blue:#5ec8ff; --turncol:#5ec8ff;
+}
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);
+  font-family:"Segoe UI",system-ui,sans-serif;color:var(--ink);font-size:14px}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+button{font-family:inherit;color:var(--ink);cursor:pointer;border:none;background:none}
+h2,h4,h5{margin:0}
+.dim{color:var(--dim)} .bad{color:var(--bad)} .sm{font-size:12px}
+.r{text-align:right}
+
+.btn{background:#22314a;border:1.5px solid var(--line2);border-radius:10px;padding:8px 14px;
+  font-size:13px;font-weight:600;transition:transform .08s,background .12s,box-shadow .12s}
+.btn:hover:not(:disabled){background:#2c4160;transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn.primary{background:#2e5a3c;border-color:#4d9160}
+.btn.primary:hover:not(:disabled){background:#3a7049}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.btn.pulse{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(126,224,129,.0)}50%{box-shadow:0 0 0 7px rgba(126,224,129,.16)}}
+
+/* ============================== SETUP ============================== */
+#setup{position:fixed;inset:0;z-index:200;overflow:auto;
+  background:radial-gradient(ellipse at 50% -10%,#1d3050 0%,#0c121c 62%);
+  display:flex;flex-direction:column;align-items:center;padding:18px 20px 24px;
+  transition:opacity .4s,transform .4s}
+#setup.hide{opacity:0;transform:scale(1.04);pointer-events:none}
+#sTitle{font-size:44px;font-weight:900;letter-spacing:6px;margin:2px 0 0;
+  background:linear-gradient(92deg,#ffd166,#ff8a5c 45%,#5ec8ff);-webkit-background-clip:text;
+  background-clip:text;color:transparent;text-shadow:0 6px 30px rgba(255,180,80,.16)}
+#sSub{color:var(--dim);margin:2px 0 12px;font-size:14px;letter-spacing:.5px}
+#langBtn{position:absolute;right:22px;top:18px;background:var(--panel2);
+  border:1.5px solid var(--line2);border-radius:9px;padding:6px 12px;font-size:13px;font-weight:700}
+.setcard{background:var(--panel);border:1.5px solid var(--line);border-radius:16px;
+  padding:14px 16px;width:min(1180px,96vw)}
+#pRows{display:grid;gap:7px}
+.prow{display:flex;align-items:center;gap:9px;background:#141d2c;
+  border:1.5px solid var(--line);border-left-width:5px;border-radius:11px;padding:6px 9px}
+.pnum{width:22px;height:22px;border-radius:6px;color:#0c121c;font-weight:900;
+  display:grid;place-items:center;font-size:12px;flex:none}
+.pname{width:104px;flex:none;background:#0f1724;border:1.5px solid var(--line);border-radius:8px;
+  color:var(--ink);padding:6px 8px;font:inherit;font-weight:700;-webkit-user-select:text;user-select:text}
+.charpick{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.arw{background:#1c2940;border:1.5px solid var(--line);border-radius:8px;
+  width:26px;height:30px;font-size:12px;flex:none}
+.arw:hover{background:#26374f}
+.charbox{display:flex;align-items:center;gap:10px;flex:1;min-width:0;
+  background:#101a28;border-radius:9px;padding:5px 10px}
+.cicon{font-size:28px;flex:none}
+.cinfo{display:flex;flex-direction:column;line-height:1.32;min-width:0;font-size:11.5px}
+.cinfo b{font-size:13.5px}
+.cinfo span{color:var(--dim)}
+.cinfo em{font-style:normal;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.perk{color:#8ce09a}.flaw{color:#ff9a9a}
+.rm{color:var(--dim);font-size:15px;padding:3px 6px;flex:none}
+.rm:hover{color:var(--bad)}
+.setrow{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:11px}
+.seg{background:#16202f;border:1.5px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600}
+.seg.on{background:#2e5a3c;border-color:#4d9160}
+.opt{display:flex;align-items:center;gap:7px;font-size:12.5px}
+.opt input{width:16px;height:16px;accent-color:#4d9160}
+.opt small{color:var(--dim);font-size:11px}
+#startBtn{margin-top:14px;font-size:17px;padding:12px 44px;border-radius:13px;font-weight:800;letter-spacing:1px}
+.setfoot{color:var(--dim);font-size:11.5px;margin-top:9px;text-align:center;max-width:800px;line-height:1.5}
+
+/* ============================== HUD ============================== */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:20;transition:transform .6s cubic-bezier(.5,0,.2,1)}
+#hud.hide{display:none}
+#hud>*{pointer-events:auto}
+
+#econbar{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;align-items:stretch;
+  background:var(--panel);border:1.5px solid var(--line);border-radius:13px;padding:6px 8px;
+  backdrop-filter:blur(8px);flex-wrap:nowrap;overflow:hidden}
+.phasebox{display:flex;align-items:center;gap:9px;padding:2px 12px 2px 6px;border-right:1.5px solid var(--line);
+  min-width:265px;max-width:340px}
+.phasebox .pi{font-size:25px}
+.phasebox b{color:var(--pc);font-size:15px;display:block;line-height:1.15}
+.phasebox small{color:var(--dim);font-size:10.5px;line-height:1.25;display:block}
+.ecell{display:flex;flex-direction:column;justify-content:center;padding:1px 9px;
+  border-right:1px solid rgba(255,255,255,.055);min-width:76px}
+.ecell .ei{font-size:12px;opacity:.8}
+.ecell .el{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px}
+.ecell b{font-size:14.5px}
+.ecell.round{margin-left:auto;border:none;text-align:right;align-items:flex-end;min-width:120px}
+.ecell.round b{color:var(--gold)}
+
+#sectorbar{position:absolute;top:64px;left:8px;display:flex;gap:4px;
+  background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:5px 7px}
+.sbar{display:flex;align-items:center;gap:4px}
+.sbar span{font-size:13px}
+.strack{width:34px;height:6px;background:#0f1724;border-radius:3px;overflow:hidden}
+.strack i{display:block;height:100%;transition:width .5s}
+
+#plist{position:absolute;left:8px;top:96px;width:212px;display:flex;flex-direction:column;gap:5px}
+.pcard{background:var(--panel);border:1.5px solid var(--line);border-left:4px solid var(--pc);
+  border-radius:10px;padding:5px 8px;cursor:pointer;transition:transform .12s,box-shadow .12s}
+.pcard:hover{transform:translateX(3px)}
+.pcard.active{box-shadow:0 0 0 2px var(--pc),0 6px 20px rgba(0,0,0,.45);background:#1a2740}
+.ptop{display:flex;align-items:center;gap:5px;font-size:13px}
+.ptop .pic{font-size:16px}
+.ptop b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptop .score{color:var(--gold);font-weight:800;font-size:14px}
+.tagx{font-size:11px}
+.pbar{height:3px;background:#0f1724;border-radius:2px;margin:3px 0;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--pc);transition:width .5s}
+.pstats{display:flex;flex-wrap:wrap;gap:3px 7px;font-size:10.5px;color:var(--dim)}
+.pstats .bad{color:#ff8f8f}
+.pcard{position:relative}
+.flyup{position:absolute;right:8px;top:4px;font-size:13px;font-weight:800;color:var(--good);
+  pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.7);animation:fly 1.5s ease-out forwards}
+@keyframes fly{0%{transform:translateY(6px);opacity:0}20%{transform:translateY(0);opacity:1}
+  100%{transform:translateY(-26px);opacity:0}}
+
+#bottom{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:7px}
+#turnBanner{background:var(--panel);border:2px solid var(--pc,#5ec8ff);border-radius:12px;
+  padding:6px 20px;font-size:17px;display:flex;align-items:center;gap:8px;
+  box-shadow:0 0 22px -6px var(--pc,#5ec8ff)}
+#turnBanner .ticon{font-size:22px}
+#turnBanner.pop{animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+#dice{display:flex;gap:8px;align-items:center;min-height:34px}
+.die{width:34px;height:34px;background:#f0f4fa;color:#16202e;border-radius:8px;
+  display:grid;place-items:center;font-size:30px;line-height:1;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+.die.spin{animation:spin .35s linear infinite;font-size:20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dsum{font-size:17px;font-weight:800;color:var(--gold);margin-left:4px}
+#actions{display:flex;gap:6px;align-items:center;background:var(--panel);
+  border:1.5px solid var(--line);border-radius:13px;padding:6px 8px}
+#actions .icb{min-width:38px;height:36px;padding:0 7px;font-size:17px;border-radius:9px;background:#22314a;
+  border:1.5px solid var(--line2)}
+#btnSpeed{font-size:12px!important;font-weight:700}
+#actions .icb:hover{background:#2c4160}
+
+#logPanel{position:absolute;right:-266px;top:96px;width:266px;max-height:62vh;
+  background:var(--panel);border:1.5px solid var(--line);border-radius:12px 0 0 12px;
+  transition:right .3s;display:flex;flex-direction:column}
+#logPanel.open{right:0}
+#logTab{position:absolute;left:-34px;top:6px;width:34px;height:38px;background:var(--panel);
+  border:1.5px solid var(--line);border-right:none;border-radius:10px 0 0 10px;
+  display:grid;place-items:center;font-size:17px;cursor:pointer}
+#logBody{overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.lline{display:flex;gap:6px;font-size:11.5px;line-height:1.4;color:var(--dim)}
+.lline p{margin:0}
+.lline.learn{color:#cfe6d4;background:rgba(126,224,129,.09);border-left:2px solid var(--good);
+  padding:5px 6px;border-radius:5px}
+
+#toast{position:absolute;bottom:118px;left:50%;transform:translate(-50%,26px);opacity:0;
+  background:linear-gradient(180deg,#1e3a2a,#16281f);border:1.5px solid #4d9160;border-radius:12px;
+  padding:9px 16px;max-width:620px;display:flex;gap:9px;align-items:flex-start;
+  transition:opacity .35s,transform .35s;pointer-events:none;box-shadow:0 10px 34px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast span{font-size:19px}
+#toast p{margin:0;font-size:12.5px;line-height:1.45;color:#dff0e2}
+
+/* ============================== KARTEN-EFFEKT ============================== */
+.cardfx{position:fixed;left:50%;top:42%;z-index:120;width:220px;height:300px;border-radius:16px;
+  transform:translate(-50%,-50%) rotateY(90deg) scale(.6);opacity:0;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.cardfx.mikro{background:linear-gradient(160deg,#7fd45f,#2c6b34);border:3px solid #b6ef9a}
+.cardfx.makro{background:linear-gradient(160deg,#4fb8ee,#1c4b78);border:3px solid #a5dcff}
+.cardfx span{font-size:64px}
+.cardfx b{font-size:22px;letter-spacing:3px}
+.cardfx small{font-size:12px;opacity:.85}
+.cardfx.go{animation:cardin .9s cubic-bezier(.3,1.2,.4,1)}
+@keyframes cardin{
+  0%{transform:translate(-50%,-50%) rotateY(90deg) scale(.6);opacity:0}
+  35%{transform:translate(-50%,-50%) rotateY(0) scale(1.05);opacity:1}
+  75%{transform:translate(-50%,-50%) rotateY(0) scale(1);opacity:1}
+  100%{transform:translate(-50%,-58%) rotateY(0) scale(.9);opacity:0}}
+
+/* ============================== MODAL ============================== */
+#modal{position:fixed;inset:0;z-index:150;display:none;place-items:center;
+  background:rgba(6,10,17,.62);backdrop-filter:blur(3px);padding:16px}
+#modal.show{display:grid}
+.mcard{background:linear-gradient(178deg,#1b2740,#141d2c);border:2px solid var(--mc,#5ec8ff);
+  border-radius:18px;padding:18px 20px;width:min(760px,94vw);max-height:88vh;overflow-y:auto;
+  box-shadow:0 28px 80px rgba(0,0,0,.66);animation:mIn .3s cubic-bezier(.3,1.3,.5,1)}
+@keyframes mIn{from{transform:translateY(18px) scale(.96);opacity:0}}
+.mcard.over{width:min(900px,96vw)}
+.mhead{display:flex;gap:13px;align-items:center;margin-bottom:10px}
+.micon{font-size:38px;flex:none}
+.mhead h2{font-size:21px;color:var(--mc)}
+.mhead h4{font-size:12.5px;color:var(--dim);font-weight:500;margin-top:2px}
+.mbig{font-size:34px;font-weight:900;color:var(--mc);text-align:center;margin:4px 0 8px}
+.mbody{font-size:14.5px;line-height:1.55;margin:0 0 10px}
+.mlist{margin:0 0 10px;padding-left:18px;display:grid;gap:4px}
+.mlist li{font-size:13px;line-height:1.5;color:#cfdaea}
+.mtip{display:flex;flex-direction:column;gap:3px;background:rgba(94,200,255,.09);
+  border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:8px 11px;margin:10px 0 4px}
+.mtip b{font-size:11px;letter-spacing:1px;color:var(--blue);text-transform:uppercase}
+.mtip span{font-size:12.5px;line-height:1.5;color:#d6e5f5}
+.mbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
+.mbtns .btn{font-size:13.5px;padding:9px 16px}
+
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:8px}
+.tbl td,.tbl th{padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.07)}
+.tbl th{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.tbl small{display:block;color:var(--dim);font-size:10.5px}
+.tbl tr.win td{background:rgba(255,209,102,.11)}
+.tbl .tot{font-weight:900;color:var(--gold);font-size:14px}
+.mini{background:#22314a;border:1.5px solid var(--line2);border-radius:6px;padding:3px 8px;font-size:11px;margin-left:3px}
+.mini:hover:not(:disabled){background:#2c4160}
+.mini:disabled{opacity:.35;cursor:not-allowed}
+.pf{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+.pf h5,.helpgrid h5{font-size:12px;color:var(--blue);text-transform:uppercase;letter-spacing:.7px;margin:2px 0 5px}
+.sl{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:3px;font-size:12.5px}
+.sl li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.05);padding:3px 0}
+.sl.learnlist li{display:block;color:#cfe6d4;font-size:12px;line-height:1.45}
+.polgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.polcard{background:#131d2d;border:2px solid var(--line);border-radius:12px;padding:11px;cursor:pointer;
+  display:flex;flex-direction:column;gap:5px;transition:transform .12s,border-color .12s,background .12s}
+.polcard:hover{transform:translateY(-3px);border-color:var(--gold);background:#1a2740}
+.polcard span{font-size:26px}
+.polcard b{font-size:14px;color:var(--gold)}
+.polcard p{margin:0;font-size:11.5px;line-height:1.45;color:#cfdaea}
+.polcard em{font-style:normal;font-size:10.5px;color:var(--dim);line-height:1.4;border-top:1px solid rgba(255,255,255,.07);padding-top:5px}
+.yr{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:6px 0}
+.yr>div{background:#131d2d;border-radius:10px;padding:8px 10px;font-size:12px}
+.yr b{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-right:6px}
+.yr span{font-weight:800;font-size:15px}
+.spark{width:100%;height:34px;margin-top:2px}
+.spark polyline{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.helpgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.helpgrid p{margin:0;font-size:12px;line-height:1.5;color:#cfdaea}
+.stk td:first-child{width:38%}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- ============================ HUD ============================ -->
+<div id="hud" class="hide">
+  <div id="econbar"></div>
+  <div id="sectorbar"></div>
+  <div id="plist"></div>
+
+  <div id="bottom">
+    <div id="turnBanner"></div>
+    <div id="dice"></div>
+    <div id="actions">
+      <button class="btn primary" id="btnRoll" disabled>🎲 Würfeln</button>
+      <button class="icb" id="btnPort" title="Besitz">🏢</button>
+      <button class="icb" id="btnBank" title="Bank">🏦</button>
+      <button class="icb" id="btnStock" title="Börse">📈</button>
+      <button class="icb" id="btnGive" title="Gemeinwohl">🤝</button>
+      <button class="icb" id="btnSpeed" title="Tempo">⏩1×</button>
+      <button class="icb" id="btnBot" title="Demo ansehen">🤖</button>
+      <button class="icb" id="btnHelp" title="Hilfe">❓</button>
+      <button class="btn" id="btnEnd" disabled>Zug beenden ▶</button>
+    </div>
+  </div>
+
+  <div id="logPanel"><div id="logTab">📜</div><div id="logBody"></div></div>
+  <div id="toast"></div>
+</div>
+
+<div id="cardFx" class="cardfx"></div>
+<div id="modal"><div id="modalCard" class="mcard"></div></div>
+
+<!-- ============================ SETUP ============================ -->
+<div id="setup">
+  <button id="langBtn">🇩🇪 DE</button>
+  <h1 id="sTitle">BOOM &amp; BUST</h1>
+  <p id="sSub">Das Wirtschafts-Brettspiel für die ganze Familie</p>
+
+  <div class="setcard">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <h5 style="font-size:12px;color:#5ec8ff;letter-spacing:.7px;text-transform:uppercase">
+        <span id="lblPlayers">Spieler</span> (<span id="pCount">3</span>/8)</h5>
+      <button class="btn" id="addP" style="padding:5px 12px;font-size:12px">+ Spieler</button>
+    </div>
+    <div id="pRows"></div>
+
+    <div class="setrow">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span id="lblLen" style="font-size:12.5px;color:#94a6c0">Spiellänge</span>
+        <div id="lenRow" style="display:flex;gap:4px">
+          <button class="seg" id="segShort" data-r="8">Kurz</button>
+          <button class="seg on" id="segNorm" data-r="12">Normal</button>
+          <button class="seg" id="segLong" data-r="20">Lang</button>
+        </div>
+      </div>
+      <label class="opt"><input type="checkbox" id="optFamily" checked>
+        <span><b id="lblFamily">Familienmodus</b><br><small id="hintFamily">Keine Pleite, mehr Erklärungen</small></span></label>
+      <label class="opt"><input type="checkbox" id="optSeat" checked>
+        <span><b id="lblSeat">Sitzplatz-Ansicht</b><br><small id="hintSeat">Kamera dreht sich zum Spieler</small></span></label>
+      <label class="opt"><input type="checkbox" id="optAuction" checked>
+        <span><b id="lblAuc">Auktionen</b><br><small id="hintAuc">Verzicht = alle dürfen bieten</small></span></label>
+      <label class="opt"><input type="checkbox" id="optTable">
+        <span><b id="lblTable">Tisch-Modus</b></span></label>
+    </div>
+
+    <div style="display:flex;justify-content:center">
+      <button class="btn primary" id="startBtn">Spiel starten</button>
+    </div>
+  </div>
+
+  <p class="setfoot">
+    Ein Spiel über Mikro- und Makroökonomie: Betriebe kaufen und ausbauen, Miete kassieren,
+    Aktien streuen, Kredite abwägen — während Konjunktur, Inflation und Leitzins das Spielfeld
+    für alle gleichzeitig verändern. Gewonnen hat nicht, wer das meiste Geld hat,
+    sondern wer die meisten <b>Lebenspunkte</b> sammelt.
+  </p>
+</div>
+
+<!-- ============================ SCRIPTS ============================ -->
+<script src="vendor/three.min.js"></script>
+<script>if(!window.THREE)document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');</script>
+<script>
+(function(){
+  var v = /[?&]nocache=1/.test(location.search) ? ('?v=' + Date.now()) : '';
+  ['js/data.js','js/econ.js','js/game.js','js/scene.js','js/ui.js'].forEach(function(f){
+    document.write('<script src="' + f + v + '" charset="utf-8"><\/script>');
+  });
+})();
+</script>
+<script>
+window.addEventListener('DOMContentLoaded', function(){
+  UI.initSetup();
+  /* ?demo=4  startet sofort ein Spiel mit 4 Figuren (zum Ausprobieren) */
+  var m = /[?&]demo=(\d+)/.exec(location.search);
+  if (m) {
+    UI.demo(Math.max(2, Math.min(8, +m[1] || 4)));
+    if (/[?&]autoplay=1/.test(location.search)) setTimeout(function(){ UI.toggleBot(); }, 1200);
+  }
+});
+</script>
+</body>
+</html>
